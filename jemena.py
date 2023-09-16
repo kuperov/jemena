@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!./.venv/bin/python3
 
 import requests
 import urllib
@@ -11,7 +11,6 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 
 
-
 @click.group()
 def jemena():
     """Tool for downloading electricity usage data from Jemena."""
@@ -19,6 +18,7 @@ def jemena():
 
 @jemena.command()
 def update():
+    """Fetch latest data from Jemena."""
     config = configparser.ConfigParser()
     config.read(os.path.expanduser('~/.jemenarc'))
     email = config.get('DEFAULT', 'email')
@@ -95,7 +95,8 @@ def plot():
         mdates.ConciseDateFormatter(ax.xaxis.get_major_locator()))
     ax.set_ylabel('kWh/half hour')
     ax.set_ylim(bottom=0)
-    plt.show()
+    fig.tight_layout()
+    fig.show()
     input('Press enter to quit')
 
 
@@ -110,14 +111,14 @@ def profile():
         .sort('time')
     )
     fig, ax = plt.subplots()
-    ax.bar(day_avg['time'].dt.hour() + day_avg['time'].dt.minute()/60 + 0.25, day_avg['usage']*2)
+    ax.step(day_avg['time'].dt.hour() + day_avg['time'].dt.minute()/60 + 0.25, day_avg['usage']*2)
     ax.set_xlabel('Hour of day')
     ax.set_ylabel('kW')
     ax.set_title('Average daily usage profile')
     ax.set_xlim(0, 24)
     ax.set_ylim(0, None)
-    plt.tight_layout()
-    plt.show()
+    fig.tight_layout()
+    fig.show()
     input('Press enter to quit')
 
 
