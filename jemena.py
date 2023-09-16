@@ -99,5 +99,27 @@ def plot():
     input('Press enter to quit')
 
 
+@jemena.command()
+def profile():
+    """Plot average daily usage profile."""
+    day_avg = (
+        get_data()
+        .with_columns(pl.col('time').dt.time())
+        .group_by('time')
+        .agg(pl.col('usage').mean())
+        .sort('time')
+    )
+    fig, ax = plt.subplots()
+    ax.bar(day_avg['time'].dt.hour() + day_avg['time'].dt.minute()/60 + 0.25, day_avg['usage']*2)
+    ax.set_xlabel('Hour of day')
+    ax.set_ylabel('kW')
+    ax.set_title('Average daily usage profile')
+    ax.set_xlim(0, 24)
+    ax.set_ylim(0, None)
+    plt.tight_layout()
+    plt.show()
+    input('Press enter to quit')
+
+
 if __name__ == '__main__':
     jemena()
