@@ -9,6 +9,7 @@ import click
 import polars as pl
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+import numpy as np
 
 
 @click.group()
@@ -63,9 +64,18 @@ def get_data():
     return dat
 
 
+def get_tariff():
+    config = configparser.ConfigParser()
+    config.read(os.path.expanduser('~/.jemenarc'))
+    rate_ckW = float(config.get('DEFAULT', 'rate_ckw'))
+    daily_c = float(config.get('DEFAULT', 'daily_c'))
+    return rate_ckW, daily_c
+
+
 @jemena.command()
 def daily():
     """Plot daily usage."""
+    rate_ckW, daily_c = get_tariff()
     dat = get_data()
     daily = (
         dat
@@ -73,13 +83,31 @@ def daily():
         .group_by_dynamic("time", every="1d")
         .agg(pl.col("usage").sum())
     )
-    fig, ax = plt.subplots()
-    ax.set_title('Daily usage', fontsize='medium')
-    ax.xaxis.set_major_formatter(
-        mdates.ConciseDateFormatter(ax.xaxis.get_major_locator()))
-    ax.set_ylabel('kWh/day')
-    ax.plot(daily['time'], daily['usage'])
-    ax.set_ylim(bottom=0)
+    fig, axes = plt.subplots(1, 2, sharex=True)
+    usage, cost = axes
+    usage.set_title('Daily usage', fontsize='medium')
+    usage.set_ylabel('kWh/day')
+    usage.plot(daily['time'], daily['usage'])
+    usage.set_ylim(bottom=0)
+
+    cost.set_title('Daily cost', fontsize='medium')
+    cost.set_ylabel('$/day')
+    bars = {
+        'Service': np.repeat(daily_c/100, len(daily['time'])),
+        'Usage': np.array(daily['usage']*rate_ckW/100),
+    }
+    bottom = np.zeros(len(daily['time']))
+    for lbl, weight_count in bars.items():
+        p = cost.bar(daily['time'], weight_count, label=lbl, bottom=bottom)
+        bottom += weight_count
+    cost.legend()
+    cost.set_ylim(bottom=0)
+    
+    for ax in axes:
+        ax.xaxis.set_major_formatter(
+            mdates.ConciseDateFormatter(cost.xaxis.get_major_locator()))
+
+    fig.tight_layout()
     fig.show()
     input('Press enter to quit')
 
