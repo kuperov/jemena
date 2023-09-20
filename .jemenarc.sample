@@ -1,0 +1,9 @@
+[DEFAULT]
+# login information for Jemena account
+email=user@domain.com
+password=secret
+# tariff: daily cost in cents
+daily_c=90
+# tariff: cost per kWh
+rate_ckw=25
+
