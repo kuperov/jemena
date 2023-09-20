@@ -9,6 +9,7 @@ import click
 import polars as pl
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+import matplotlib.ticker as ticker
 import numpy as np
 
 
@@ -131,20 +132,36 @@ def plot():
 @jemena.command()
 def profile():
     """Plot average daily usage profile."""
+    data = get_data()
+    yesterday = data['time'].dt.date().max()
     day_avg = (
-        get_data()
+        data
+        .filter(pl.col('time').dt.date() != yesterday)
         .with_columns(pl.col('time').dt.time())
         .group_by('time')
         .agg(pl.col('usage').mean())
         .sort('time')
     )
+    ye_u = (
+        data
+        .filter(pl.col('time').dt.date() == yesterday)
+        .sort('time')
+    )
     fig, ax = plt.subplots()
-    ax.step(day_avg['time'].dt.hour() + day_avg['time'].dt.minute()/60 + 0.25, day_avg['usage']*2)
+    ax.step(day_avg['time'].dt.hour() + day_avg['time'].dt.minute()/60 + 0.25,
+            day_avg['usage']*2,
+            label='Average')
+    ax.step(ye_u['time'].dt.hour() + ye_u['time'].dt.minute()/60 + 0.25,
+            ye_u['usage']*2,
+            linestyle='--',
+            label=yesterday.strftime('%a %d %b'))
     ax.set_xlabel('Hour of day')
-    ax.set_ylabel('kW')
+    ax.set_ylabel('Average power usage kW')
     ax.set_title('Average daily usage profile')
     ax.set_xlim(0, 24)
     ax.set_ylim(0, None)
+    ax.legend(frameon=False)
+    ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
     fig.tight_layout()
     fig.show()
     input('Press enter to quit')
