@@ -22,7 +22,8 @@ Commands:
   update   Fetch latest data from Jemena.
 ```
 
-Set up:
+Set up
+------
 
 ```bash
 python3 -m venv .venv
