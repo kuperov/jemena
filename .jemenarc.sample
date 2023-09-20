@@ -6,4 +6,5 @@ password=secret
 daily_c=90
 # tariff: cost per kWh
 rate_ckw=25
-
+# only use data after this date (e.g. move in date)
+start_date=2023-1-1

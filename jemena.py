@@ -1,8 +1,6 @@
 #!./.venv/bin/python3
 
 import requests
-import urllib
-import csv
 import configparser
 import os
 import click
@@ -13,6 +11,11 @@ import matplotlib.ticker as ticker
 import numpy as np
 
 
+def get_config():
+    config = configparser.ConfigParser()
+    config.read(os.path.expanduser('~/.jemenarc'))
+    return config
+
 @click.group()
 def jemena():
     """Tool for downloading electricity usage data from Jemena."""
@@ -21,8 +24,7 @@ def jemena():
 @jemena.command()
 def update():
     """Fetch latest data from Jemena."""
-    config = configparser.ConfigParser()
-    config.read(os.path.expanduser('~/.jemenarc'))
+    config = get_config()
     email = config.get('DEFAULT', 'email')
     password = config.get('DEFAULT', 'password')
     # The URL of the CSV file to download
@@ -50,6 +52,9 @@ def update():
 
 def get_data():
     """Load and process raw data"""
+    config = get_config()
+    start_param = [int(s) for s in config.get('DEFAULT', 'start_date').split('-')]
+    start_date = pl.date(*start_param)
     dat = (
         pl
         .read_csv('electricity_outlook.csv', try_parse_dates=True)
@@ -60,14 +65,13 @@ def get_data():
         .with_columns(pl.col('period').str.strptime(pl.Time, format="%H:%M"))
         .with_columns(pl.col('DATE').dt.combine(pl.col('period')).alias('time'))
         .select(['time', 'usage'])
-        .filter(pl.col('time') > pl.date(2023, 9, 10))
+        .filter(pl.col('time') >= start_date)
     )
     return dat
 
 
 def get_tariff():
-    config = configparser.ConfigParser()
-    config.read(os.path.expanduser('~/.jemenarc'))
+    config = get_config()
     rate_ckW = float(config.get('DEFAULT', 'rate_ckw'))
     daily_c = float(config.get('DEFAULT', 'daily_c'))
     return rate_ckW, daily_c
